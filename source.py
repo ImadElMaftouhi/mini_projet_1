@@ -174,28 +174,38 @@ def fill_vent_table():
 def main():
     # Connect to the database
     connect_db("mini_projet_1", "postgres", "postgres", "localhost", "5432")
-
+    
+    print("creating tables now ...")
     # Create tables
     create_tables()
+    
 
+    print("reading data from excel file ")
     # Read data from Excel file
     read_excel(path)
 
+  
+    print("filling the 'article' table now")
     # Fill the 'articles' table
     article_query = fill_artice_table()
     cur.execute(article_query)
     conn.commit()
 
+
+    print("filling the 'achats' table now ")
     # Fill the 'achats' table
     achat_query = fill_achat_table()
     cur.execute(achat_query)
     conn.commit()
 
+    print("filling the 'ventes' table now ")
     # Fill the 'ventes' table
     vent_query = fill_vent_table()
     cur.execute(vent_query)
     conn.commit()
 
+
+    print("filling the 'bilan' table now ")
     # Fill the 'bilan' table
     bilan_query = fill_bilan_table()
     cur.execute(bilan_query)
@@ -205,17 +215,14 @@ def main():
     print('\nDropping tables now ...')
     time.sleep(120)
 
-
-    drop_tables()
+    # drop_tables()
 
     # Disconnect from the database
     disconnect_db()
     print('\nDisconnected now, goodbye !')
-    time.sleep(5)
+    time.sleep(2)
     
     exit()
-
-
 
 if __name__ == "__main__":
     main()
