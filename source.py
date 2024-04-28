@@ -16,17 +16,22 @@ def connect_db(dbname, user, password, host, port):
             port=port
         )
         cur = conn.cursor()
-        return("Connected to database:", conn.get_dsn_parameters(), "\n")
+        connection_details = f"\nConnected to database: {conn.get_dsn_parameters()} \n"
+        return connection_details, True  # Return connection details and True for success
 
     except (Exception, psycopg2.Error) as error:
-        return "Error while connecting to PostgreSQL: " + str(error)
+        error_message = f"\nError while connecting to PostgreSQL: {error}\n"
+        return error_message, False  # Return error message and False for failure
+
 
 def disconnect_db():
     global conn, cur
-    if conn:
+    if conn is not None:
         cur.close()
         conn.close()
         return "PostgreSQL connection is closed."
+    else:
+        return "No active PostgreSQL connection to close."
 
 def create_tables():
     global conn, cur
@@ -85,7 +90,7 @@ def drop_tables():
 
 
 
-def read_excel(excel_path):
+def read_data(excel_path):
     global data 
     data = pd.read_excel(excel_path, sheet_name = None)
     
@@ -173,17 +178,19 @@ def fill_vent_table():
 
 def main():
     # Connect to the database
-    connect_db("mini_projet_1", "postgres", "postgres", "localhost", "5432")
-    
+    log = ""
+
+    temp = connect_db("mini_projet_1", "postgres", "postgres", "localhost", "5432")
+    # log += str(temp)
+    # print(log)
+
     print("creating tables now ...")
     # Create tables
     create_tables()
-    
 
     print("reading data from excel file ")
     # Read data from Excel file
-    read_excel(path)
-
+    read_data(path)
   
     print("filling the 'article' table now")
     # Fill the 'articles' table
@@ -191,12 +198,13 @@ def main():
     cur.execute(article_query)
     conn.commit()
 
-
     print("filling the 'achats' table now ")
     # Fill the 'achats' table
     achat_query = fill_achat_table()
     cur.execute(achat_query)
     conn.commit()
+    
+
 
     print("filling the 'ventes' table now ")
     # Fill the 'ventes' table
@@ -204,24 +212,23 @@ def main():
     cur.execute(vent_query)
     conn.commit()
 
-
     print("filling the 'bilan' table now ")
     # Fill the 'bilan' table
     bilan_query = fill_bilan_table()
     cur.execute(bilan_query)
     conn.commit()
 
-
     print('\nDropping tables now ...')
-    time.sleep(120)
-
-    # drop_tables()
+    time.sleep(60)
+    drop_tables()
+    
 
     # Disconnect from the database
     disconnect_db()
     print('\nDisconnected now, goodbye !')
-    time.sleep(2)
     
+
+    time.sleep(2)
     exit()
 
 if __name__ == "__main__":
