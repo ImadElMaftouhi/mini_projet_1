@@ -69,9 +69,9 @@ def create_tables():
     try:
         cur.execute(query)
         conn.commit()
-        return("Tables created successfully.")
+        return("Tables created successfully."), True
     except (Exception, psycopg2.Error) as error:
-        return "Error creating tables: " + str(error) 
+        return "Error creating tables: " + str(error), False 
 
 
 def drop_tables():
@@ -93,10 +93,6 @@ def drop_tables():
 def read_data(excel_path):
     global data 
     data = pd.read_excel(excel_path, sheet_name = None)
-    
-    for sheet_name, df in data.items():
-        print (f"Sheet Name: {sheet_name}")
-        print(df)
 
 def fill_bilan_table():
     achat_dict = {}
