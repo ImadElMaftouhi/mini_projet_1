@@ -7,7 +7,7 @@ class Application(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.geometry(f"{1200}x{400}")
+        self.geometry(f"{1200}x{700}")
 
         self.tab_control = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tab_control)
@@ -81,7 +81,7 @@ class Application(tk.Tk):
         self.connection_button.place(relx=0.455, rely=0.7)
 
 
-        self.text_area = tk.Text(self.subframe1, bg="#124559")
+        self.text_area = tk.Text(self.subframe1, bg="#124559", fg='white', highlightbackground="#124559", insertbackground='white')
         self.text_area.place(relx=0.02, rely=0.35, relheight=0.6, relwidth=0.96)
 
 
@@ -107,7 +107,7 @@ class Application(tk.Tk):
         self.status_label.config(text='hors ligne', fg='red')
 
         print(output)
-
+        self.text_area.delete("1.0", "end")
         self.text_area.insert('1.0', output)
 
 
@@ -128,6 +128,7 @@ class Application(tk.Tk):
                 log += f"\nNom de la feuille : {sheet_name}\n"
                 log += str(df)
 
+            self.text_area.delete("1.0", "end")
             self.text_area.insert('1.0', f'Données importées : \n{log}\n')
         else:
             print("No file selected.")
@@ -135,17 +136,41 @@ class Application(tk.Tk):
 
     def create_tables(self):
         query_stat, query_log = source.create_tables
+        self.text_area.delete("1.0", "end")
         self.text_area.insert("1.0", query_stat)
-        
+        print(query_stat)
 
 
     def fill_tables(self):
-        pass
-        # ... (the fill_tables function)
+        query = source.fill_achat_table() + ';' + source.fill_artice_table() + ';' + source.fill_vent_table()
+        try:
+            source.cur.execute(query)
+            source.conn.commit()
+        except Exception as e:
+            source.conn.rollback()
+            log = 'Error filling the table' + str(e)
+            self.text_area.delete("1.0", "end")
+            self.text_area.insert("1.0", log)
+            print(log)
 
     def generate_bilan(self):
-        pass
-        # ... (the generate_bilan function)
+        query = source.fill_bilan_table()
+        try:
+            source.cur.execute(query)
+            source.conn.commit()
+        except Exception as e:
+            source.conn.rollback()
+            log = 'Error lors de la generation du bilan' + str(e)
+            print(log)
+            self.text_area.delete("1.0", 'end')
+            self.text_area.insert("1.0", log)
+    
+    def drop_table(self):
+        query_stat, query_log = source.drop_tables()
+        print(query_log)
+        self.text_area.delete("1.0", "end")
+        self.text_area.insert("1.0", query_log)
+
 
 
 if __name__ == "__main__":
