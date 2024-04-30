@@ -133,8 +133,11 @@ class Application(tk.Tk):
             print("No file selected.")
 
 
-    def create_tables():
-        pass
+    def create_tables(self):
+        query_stat, query_log = source.create_tables
+        self.text_area.insert("1.0", query_stat)
+        
+
 
     def fill_tables(self):
         pass
