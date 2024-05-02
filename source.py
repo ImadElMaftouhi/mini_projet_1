@@ -67,12 +67,14 @@ def create_tables():
     );
     """
     try:
+        cur = conn.cursor()
         cur.execute(query)
         conn.commit()
-        return("Tables created successfully."), True
-    except (Exception, psycopg2.Error) as error:
-        return "Error creating tables: " + str(error), False 
+        return "Tables created successfully."
 
+    except (Exception, psycopg2.Error) as error:
+        error_message = str(error)
+        return error_message
 
 def drop_tables():
     try:
@@ -84,7 +86,7 @@ def drop_tables():
         return "Tables deleted successfully."
 
     except (Exception, psycopg2.Error) as error:
-        return "Error deleting tables: " + str(error)
+        return str(error)
 
 
 
@@ -171,61 +173,72 @@ def fill_vent_table():
     return(query)
 
 
+def get_table_data(table_name):
+    query = f"SELECT * FROM {table_name};"
+    try:
+        cur = conn.cursor()
+        cur.execute(query)
+        rows = cur.fetchall()
+        return rows
+    except Exception as e:
+        print(f"Error when retrieving data from table '{table_name}', Error : {str(e)}")
+        return []
+    
 
-def main():
-    # Connect to the database
-    log = ""
+# def main():
+#     # Connect to the database
+#     log = ""
 
-    temp = connect_db("mini_projet_1", "postgres", "postgres", "localhost", "5432")
-    # log += str(temp)
-    # print(log)
+#     temp = connect_db("mini_projet_1", "postgres", "postgres", "localhost", "5432")
+#     # log += str(temp)
+#     # print(log)
 
-    print("creating tables now ...")
-    # Create tables
-    create_tables()
+#     print("creating tables now ...")
+#     # Create tables
+#     create_tables()
 
-    print("reading data from excel file ")
-    # Read data from Excel file
-    read_data(path)
+#     print("reading data from excel file ")
+#     # Read data from Excel file
+#     read_data(path)
   
-    print("filling the 'article' table now")
-    # Fill the 'articles' table
-    article_query = fill_artice_table()
-    cur.execute(article_query)
-    conn.commit()
+#     print("filling the 'article' table now")
+#     # Fill the 'articles' table
+#     article_query = fill_artice_table()
+#     cur.execute(article_query)
+#     conn.commit()
 
-    print("filling the 'achats' table now ")
-    # Fill the 'achats' table
-    achat_query = fill_achat_table()
-    cur.execute(achat_query)
-    conn.commit()
+#     print("filling the 'achats' table now ")
+#     # Fill the 'achats' table
+#     achat_query = fill_achat_table()
+#     cur.execute(achat_query)
+#     conn.commit()
     
 
 
-    print("filling the 'ventes' table now ")
-    # Fill the 'ventes' table
-    vent_query = fill_vent_table()
-    cur.execute(vent_query)
-    conn.commit()
+#     print("filling the 'ventes' table now ")
+#     # Fill the 'ventes' table
+#     vent_query = fill_vent_table()
+#     cur.execute(vent_query)
+#     conn.commit()
 
-    print("filling the 'bilan' table now ")
-    # Fill the 'bilan' table
-    bilan_query = fill_bilan_table()
-    cur.execute(bilan_query)
-    conn.commit()
+#     print("filling the 'bilan' table now ")
+#     # Fill the 'bilan' table
+#     bilan_query = fill_bilan_table()
+#     cur.execute(bilan_query)
+#     conn.commit()
 
-    print('\nDropping tables now ...')
-    time.sleep(60)
-    drop_tables()
+#     print('\nDropping tables now ...')
+#     time.sleep(60)
+#     drop_tables()
     
 
-    # Disconnect from the database
-    disconnect_db()
-    print('\nDisconnected now, goodbye !')
+#     # Disconnect from the database
+#     disconnect_db()
+#     print('\nDisconnected now, goodbye !')
     
 
-    time.sleep(2)
-    exit()
+#     time.sleep(2)
+#     exit()
 
 if __name__ == "__main__":
     main()

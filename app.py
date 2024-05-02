@@ -23,12 +23,13 @@ class Application(tk.Tk):
         self.button_frame = tk.Frame(self.subframe1, bg="#124559")
         self.button_frame.place(relx=0.02, rely=0.05, height=50, relwidth=0.96)
 
-        self.button1 = tk.Button(self.button_frame, text="Connecter", command=self.connect, height=50)
+        self.button1 = tk.Button(self.button_frame, text="supprimer les tableaux", command=self.drop_table, height=50)
         self.button2 = tk.Button(self.button_frame, text="Créer les tableaux", command=self.create_tables, height=50)
         self.button3 = tk.Button(self.button_frame, text="Importer", command=self.read_data, height=50)
         self.button4 = tk.Button(self.button_frame, text="Remplir les tableaux", command=self.fill_tables, height=50)
         self.button5 = tk.Button(self.button_frame, text="Générer le bilan", command=self.generate_bilan, height=50)
 
+        self.button1.pack(side=tk.LEFT, fill='both', expand=True)
         self.button2.pack(side=tk.LEFT, fill='both', expand=True)
         self.button3.pack(side=tk.LEFT, fill='both', expand=True)
         self.button4.pack(side=tk.LEFT, fill='both', expand=True)
@@ -96,19 +97,30 @@ class Application(tk.Tk):
 
         status_label_color = 'green' if connection_status else 'red'
         status_text = 'en ligne' if connection_status else 'hors ligne'
+        
+        self.connection_button.config(command = self.disconnect, text = 'deconnecter')
+        
         self.status_label.config(text=status_text, fg=status_label_color)
 
         return connection_info
 
 
     def disconnect(self):
-        output = source.disconnect_db()
+        connection_info = source.disconnect_db()
 
         self.status_label.config(text='hors ligne', fg='red')
 
-        print(output)
+        status_label_color ='red'
+        status_text = 'hors ligne'
+        
+        self.connection_button.config(command = self.connect, text = 'connecter')
+        
+        self.status_label.config(text=status_text, fg=status_label_color)
+
+
+        print(connection_info)
         self.text_area.delete("1.0", "end")
-        self.text_area.insert('1.0', output)
+        self.text_area.insert('1.0', connection_info)
 
 
     def read_data(self):
@@ -118,9 +130,7 @@ class Application(tk.Tk):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=(("Excel files", "*.xlsx"), ("All files", "*.*")))
 
         if file_path:
-
             source.read_data(file_path)
-
             log = ''
 
             for sheet_name, df in source.data.items():
@@ -135,14 +145,14 @@ class Application(tk.Tk):
 
 
     def create_tables(self):
-        query_stat, query_log = source.create_tables
+        query_log = source.create_tables()
         self.text_area.delete("1.0", "end")
-        self.text_area.insert("1.0", query_stat)
-        print(query_stat)
+        self.text_area.insert("1.0", query_log)
+        print(query_log)
 
 
     def fill_tables(self):
-        query = source.fill_achat_table() + ';' + source.fill_artice_table() + ';' + source.fill_vent_table()
+        query = source.fill_artice_table() + ';' + source.fill_achat_table() + ';' +  source.fill_vent_table()
         try:
             source.cur.execute(query)
             source.conn.commit()
@@ -158,20 +168,21 @@ class Application(tk.Tk):
         try:
             source.cur.execute(query)
             source.conn.commit()
+            self.text_area.delete("1.0", 'end')
+            self.text_area.insert("1.0", source.get_table_data("bilan"))
         except Exception as e:
             source.conn.rollback()
-            log = 'Error lors de la generation du bilan' + str(e)
+            log = 'Error when generating the balance sheet, Error : \n' + str(e)
             print(log)
             self.text_area.delete("1.0", 'end')
             self.text_area.insert("1.0", log)
-    
     def drop_table(self):
-        query_stat, query_log = source.drop_tables()
+        query_log = source.drop_tables()
         print(query_log)
         self.text_area.delete("1.0", "end")
         self.text_area.insert("1.0", query_log)
 
-
+    
 
 if __name__ == "__main__":
     app = Application()
