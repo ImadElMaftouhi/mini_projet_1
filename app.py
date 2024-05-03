@@ -7,7 +7,7 @@ class Application(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.geometry(f"{1200}x{700}")
+        self.geometry(f"{1200}x{600}")
 
         self.tab_control = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tab_control)
@@ -21,19 +21,22 @@ class Application(tk.Tk):
         self.subframe1.pack(expand=1, fill='both', ipadx=20, ipady=20)
 
         self.button_frame = tk.Frame(self.subframe1, bg="#124559")
-        self.button_frame.place(relx=0.02, rely=0.05, height=50, relwidth=0.96)
+        self.button_frame.place(relx=0.02, rely=0.06, height=50, relwidth=0.96)
 
-        self.button1 = tk.Button(self.button_frame, text="supprimer les tableaux", command=self.drop_table, height=50)
+        self.button1 = tk.Button(self.button_frame, text="Importer les donnees", command=self.read_data, height=50)
         self.button2 = tk.Button(self.button_frame, text="Créer les tableaux", command=self.create_tables, height=50)
-        self.button3 = tk.Button(self.button_frame, text="Importer", command=self.read_data, height=50)
-        self.button4 = tk.Button(self.button_frame, text="Remplir les tableaux", command=self.fill_tables, height=50)
-        self.button5 = tk.Button(self.button_frame, text="Générer le bilan", command=self.generate_bilan, height=50)
+        self.button3 = tk.Button(self.button_frame, text="Remplir les tableaux", command=self.fill_tables, height=50)
+        self.button4 = tk.Button(self.button_frame, text="Générer le bilan", command=self.generate_bilan, height=50)
+        self.button5 = tk.Button(self.button_frame, text="Supprimer les donnnes", command=self.connect, height=50)
 
         self.button1.pack(side=tk.LEFT, fill='both', expand=True)
         self.button2.pack(side=tk.LEFT, fill='both', expand=True)
         self.button3.pack(side=tk.LEFT, fill='both', expand=True)
         self.button4.pack(side=tk.LEFT, fill='both', expand=True)
         self.button5.pack(side=tk.LEFT, fill='both', expand=True)
+
+        self.connection_indicator = tk.Label(text = 'horsligne' , fg= 'red', bg = '#01161E')
+        self.connection_indicator.place(relx = .02 , rely = 0.05)
 
         self.label = tk.Label(self.subframe1, text="LOG : ", bg="#01161E", fg='white')
         self.label.place(relx=0.02, rely=0.3)
@@ -97,30 +100,22 @@ class Application(tk.Tk):
 
         status_label_color = 'green' if connection_status else 'red'
         status_text = 'en ligne' if connection_status else 'hors ligne'
-        
-        self.connection_button.config(command = self.disconnect, text = 'deconnecter')
-        
+        self.connection_indicator.config(fg = 'green' if connection_status else 'red') 
+        self.connection_indicator.config(text = 'en ligne' if connection_status else 'hors ligne') 
+
         self.status_label.config(text=status_text, fg=status_label_color)
 
         return connection_info
 
 
     def disconnect(self):
-        connection_info = source.disconnect_db()
+        output = source.disconnect_db()
 
         self.status_label.config(text='hors ligne', fg='red')
 
-        status_label_color ='red'
-        status_text = 'hors ligne'
-        
-        self.connection_button.config(command = self.connect, text = 'connecter')
-        
-        self.status_label.config(text=status_text, fg=status_label_color)
-
-
-        print(connection_info)
+        print(output)
         self.text_area.delete("1.0", "end")
-        self.text_area.insert('1.0', connection_info)
+        self.text_area.insert('1.0', output)
 
 
     def read_data(self):
@@ -130,11 +125,12 @@ class Application(tk.Tk):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=(("Excel files", "*.xlsx"), ("All files", "*.*")))
 
         if file_path:
+
             source.read_data(file_path)
+
             log = ''
-
+            
             for sheet_name, df in source.data.items():
-
                 log += f"\nNom de la feuille : {sheet_name}\n"
                 log += str(df)
 
@@ -145,14 +141,14 @@ class Application(tk.Tk):
 
 
     def create_tables(self):
-        query_log = source.create_tables()
+        query_stat, query_log = source.create_tables
         self.text_area.delete("1.0", "end")
-        self.text_area.insert("1.0", query_log)
-        print(query_log)
+        self.text_area.insert("1.0", query_stat)
+        print(query_stat)
 
 
     def fill_tables(self):
-        query = source.fill_artice_table() + ';' + source.fill_achat_table() + ';' +  source.fill_vent_table()
+        query = source.fill_achat_table() + ';' + source.fill_artice_table() + ';' + source.fill_vent_table()
         try:
             source.cur.execute(query)
             source.conn.commit()
@@ -163,26 +159,27 @@ class Application(tk.Tk):
             self.text_area.insert("1.0", log)
             print(log)
 
+
     def generate_bilan(self):
         query = source.fill_bilan_table()
         try:
             source.cur.execute(query)
             source.conn.commit()
-            self.text_area.delete("1.0", 'end')
-            self.text_area.insert("1.0", source.get_table_data("bilan"))
         except Exception as e:
             source.conn.rollback()
-            log = 'Error when generating the balance sheet, Error : \n' + str(e)
+            log = 'Error lors de la generation du bilan' + str(e)
             print(log)
             self.text_area.delete("1.0", 'end')
             self.text_area.insert("1.0", log)
+
+    
     def drop_table(self):
-        query_log = source.drop_tables()
+        query_stat, query_log = source.drop_tables()
         print(query_log)
         self.text_area.delete("1.0", "end")
         self.text_area.insert("1.0", query_log)
 
-    
+
 
 if __name__ == "__main__":
     app = Application()
