@@ -3,6 +3,39 @@ from tkinter import ttk
 import tkinter.filedialog as filedialog
 import source
 
+class Table():
+    next_row = 0 
+    def __init__(self, frame):
+        self.table = ttk.Treeview(frame)
+        self.table['columns'] = ('col1', 'col2', 'col3', 'col4')
+        
+        # Define column properties
+        self.table.column("#0", width=0, stretch=tk.NO)
+        self.table.column("col1", anchor=tk.CENTER, width=80)
+        self.table.column("col2", anchor=tk.CENTER, width=80)
+        self.table.column("col3", anchor=tk.CENTER, width=80)
+        self.table.column("col4", anchor=tk.CENTER, width=80)
+
+        # Define column headings
+        self.table.heading("#0", text="", anchor=tk.CENTER)
+        self.table.heading("col1", text="num", anchor=tk.CENTER)
+        self.table.heading("col2", text="art_id", anchor=tk.CENTER)
+        self.table.heading("col3", text="qte_actuelle", anchor=tk.CENTER)
+        self.table.heading("col4", text="libelle", anchor=tk.CENTER)
+
+    def _insert_row(self, value1, value2, value3, value4):    
+        # Insert sample data
+        self.table.insert(parent='', index='end', iid=Table.next_row, text='', values=(value1, value2, value3, value4))
+        # increment the index for the next insertion
+        Table.next_row +=1 
+
+    def _pack(self):
+        self.table.pack()
+
+
+
+
+
 class Application(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -158,9 +191,14 @@ class Application(tk.Tk):
 
     def fill_tables(self):
         query = source.fill_artice_table() + ';' + source.fill_achat_table() + ';' +  source.fill_vent_table()
+    
         try:
             source.cur.execute(query)
             source.conn.commit()
+            print("Tables filled successfuly.")
+            self.text_area.delete("1.0", "end")
+            self.text_area.insert("1.0", "Tables filled successfuly.")
+
         except Exception as e:
             source.conn.rollback()
             log = 'Error filling the table' + str(e)
@@ -169,28 +207,35 @@ class Application(tk.Tk):
             print(log)
 
     def generate_bilan(self):
-        query = source.fill_bilan_table()
         try:
-            source.cur.execute(query)
+            source.cur.execute(source.fill_bilan_table())
             source.conn.commit()
+
+            data = source.get_table_data("bilan")
+            bilan = source.generate_bilan(data)
+
             self.text_area.delete("1.0", 'end')
-            self.text_area.insert("1.0", source.get_table_data("bilan"))
+            self.text_area.insert("1.0", bilan)
+
         except Exception as e:
             source.conn.rollback()
-            log = 'Error when generating the balance sheet, Error : \n' + str(e)
+            log = f'Error when generating the balance sheet, Error : \n{str(e)}'
             print(log)
             self.text_area.delete("1.0", 'end')
             self.text_area.insert("1.0", log)
-            
+
+    
+
     def drop_table(self):
         query_log = source.drop_tables()
         print(query_log)
         self.text_area.delete("1.0", "end")
         self.text_area.insert("1.0", query_log)
 
-    
+
+
+
 
 if __name__ == "__main__":
     app = Application()
     app.mainloop()
-    app.destroy()

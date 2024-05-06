@@ -183,7 +183,11 @@ def get_table_data(table_name):
     except Exception as e:
         print(f"Error when retrieving data from table '{table_name}', Error : {str(e)}")
         return []
-    
+
+def generate_bilan(data):
+    df = pd.DataFrame(data, columns=['num', 'art_id', 'qte_actuelle', 'libelle'])
+    print(df)
+    return df
 
 # def main():
 #     # Connect to the database
