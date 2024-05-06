@@ -240,5 +240,5 @@ def get_table_data(table_name):
 #     time.sleep(2)
 #     exit()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

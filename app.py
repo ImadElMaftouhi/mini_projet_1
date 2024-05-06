@@ -96,12 +96,15 @@ class Application(tk.Tk):
         connection_info, connection_status = source.connect_db(dbname_val, user_val, password_val, host_val, port_val)
 
         status_label_color = 'green' if connection_status else 'red'
-        status_text = 'en ligne' if connection_status else 'hors ligne'
-        
-        self.connection_button.config(command = self.disconnect, text = 'deconnecter')
+        status_text = 'en ligne' if connection_status else 'hors ligne'    
+
+        button_text = 'connect' if connection_status else 'deconnecter'
+        button_function = self.connect if connection_status else self.disconnect
+
+        self.connection_button.config(command = button_function , text = button_text)
         
         self.status_label.config(text=status_text, fg=status_label_color)
-
+        print(connection_info)
         return connection_info
 
 
@@ -124,7 +127,7 @@ class Application(tk.Tk):
 
 
     def read_data(self):
-        root = tk.Tk()
+        root = tk.Toplevel(self)  # Create a Toplevel window 
         root.withdraw()  # Hide the main window
 
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=(("Excel files", "*.xlsx"), ("All files", "*.*")))
@@ -142,6 +145,8 @@ class Application(tk.Tk):
             self.text_area.insert('1.0', f'Données importées : \n{log}\n')
         else:
             print("No file selected.")
+
+        root.destroy()  # Destroy the Toplevel window when done
 
 
     def create_tables(self):
@@ -176,6 +181,7 @@ class Application(tk.Tk):
             print(log)
             self.text_area.delete("1.0", 'end')
             self.text_area.insert("1.0", log)
+            
     def drop_table(self):
         query_log = source.drop_tables()
         print(query_log)
@@ -187,3 +193,4 @@ class Application(tk.Tk):
 if __name__ == "__main__":
     app = Application()
     app.mainloop()
+    app.destroy()
