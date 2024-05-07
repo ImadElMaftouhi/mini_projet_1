@@ -211,9 +211,8 @@ class Application(tk.Tk):
             source.cur.execute(source.fill_bilan_table())
             source.conn.commit()
 
-            data = source.get_table_data("bilan")
-            bilan = source.generate_bilan(data)
-
+            bilan = source.generate_bilan(source.get_table_data("bilan"))
+            
             self.text_area.delete("1.0", 'end')
             self.text_area.insert("1.0", bilan)
 
