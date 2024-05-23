@@ -130,12 +130,15 @@ def fill_bilan_table():
         libelle = data['Articles'].loc[data['Articles']['id'] == a, 'libelle'].iloc[0]
         bilan_dict[a].append(libelle)
     
+
+    # Creation du tableau bilan
     bilan_df = pd.DataFrame.from_dict(bilan_dict, orient='index', columns=['qte_actuelle', 'libelle'])
 
     bilan_df.reset_index(inplace=True)
 
     bilan_df.columns = ['art_id', 'qte_actuelle', 'libelle']
 
+    # creation du requete pour postgresql
     query = "INSERT INTO bilan (num, art_id, qte_actuelle, libelle) values"
         
     for index, row in bilan_df.iterrows():
