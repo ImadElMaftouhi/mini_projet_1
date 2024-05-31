@@ -1,6 +1,8 @@
+from os import error
 import tkinter as tk
 from tkinter import ttk
 import tkinter.filedialog as filedialog
+import tkinter.messagebox as msgbox
 from numpy import pad, size
 import source
 
@@ -156,15 +158,15 @@ class Application(tk.Tk):
         status_label_color = 'green' if connection_status else 'red'
         status_text = 'en ligne' if connection_status else 'hors ligne'    
 
-        button_text = 'connect' if connection_status else 'deconnecter'
-        button_function = self.connect if connection_status else self.disconnect
+        button_text = 'deconnecter' if connection_status else 'connecter'
+        button_function = self.disconnect if connection_status else self.connect
 
         # Modification des indicators de la connections 
         self.connection_button.config(command = button_function , text = button_text)
         self.status_label2.config(text=status_text, fg=status_label_color)
         self.status_label1.config(text=status_text, fg=status_label_color)
         
-        alert = Alert(self.subframe1, "Status de connection", 'connection reussie' if connection_status else 'connection echoue')
+        alert = Alert(self.subframe1, "Status de connection", connection_info)
 
         return connection_info
 
@@ -196,42 +198,81 @@ class Application(tk.Tk):
         if file_path:
             source.read_data(file_path)
             self.__class__.imported_data_game = 1
+            msgbox.showinfo('Succès', 'Chargement réussi des données')
 
-            log = ''
+            # log = ''
+            # for sheet_name, df in source.data.items():
+            #     log += f"\nNom de tableau : {sheet_name}\n"
+            #     log += str(df)
+            # self.text_area.delete("1.0", "end")
+            # self.text_area.insert('1.0', f'Données importées : \n{log}\n')
 
-            for sheet_name, df in source.data.items():
-
-                log += f"\nNom de tableau : {sheet_name}\n"
-                log += str(df)
-
-            self.text_area.delete("1.0", "end")
-            self.text_area.insert('1.0', f'Données importées : \n{log}\n')
         else:
             alert = Alert(self.subframe1, "Importation", "Aucun chemin n'est specifiee")
         root.destroy()
 
-    def animate_xframe(self, frame, target_relx, new_relx=-1):
-        # Calculate the new position of the frame
-        if new_relx <= target_relx + 0.005:
-            self.table_buttons_frame.place(relx=new_relx, rely=0.2, height=30, relwidth=0.96)
-            new_relx += 0.005
-            return self.after(1, self.animate_xframe, frame, target_relx, new_relx) # type: ignore
-        else:
-            pass
+   
         
+
     def view_tables(self):
         if self.__class__.imported_data_game == 0 :
-            alert = Alert(self.subframe1, "Alert", "No data has been imported yet")
+            msgbox.showerror('Error', 'Aucun jeux donnees detectee')
+            return 0 
+        
+        if self.table_buttons_frame.winfo_children() : 
+            self.animate_xframe(self.table_buttons_frame, target_relx=-1)
+            
+            for widget in self.table_buttons_frame.winfo_children():
+                widget.destroy()
+
         else:
-            # Start the animation
-            for table in source.data.keys():
-                tk.Button(self.table_buttons_frame, text=table, command=lambda x=table: view_table(x)).pack(side=tk.LEFT, fill='both', expand=True)
-            self.animate_xframe(self.table_buttons_frame, 0.02)
+            if self.__class__.imported_data_game == 0 :
+                # alert = Alert(self.subframe1, "Alert", "Aucun jeux de donnees n'est detecte")
+                msgbox.showerror("Error", "Aucun jeux de donnee n'est detecte")
+            else:
+                # Start the animation
+                for table in source.data.keys():
+                    tk.Button(self.table_buttons_frame, text=table, command=lambda x=table: view_table(x)).pack(side=tk.LEFT, fill='both', expand=True)
+                self.animate_xframe(self.table_buttons_frame, 0.02)
 
         def view_table(table_name):
             self.text_area.delete('1.0', 'end')
             self.text_area.insert("1.0", source.data[table_name].to_string())
                     
+
+
+
+    def animate_xframe(self, frame, target_relx, new_relx: float = -1):
+        '''
+            Anime le cadre en direction de la cible.
+
+            Args :
+                frame : Le cadre à animer.
+                target_relx : La position x relative de la cible.
+                new_relx (optionnel) : La nouvelle position relative en x. La valeur par défaut est -1.
+        '''  
+        # Calculate the direction based on the target_relx and new_relx
+        if new_relx == -1:  
+            new_relx = float(self.table_buttons_frame.place_info().get('relx', '0'))
+
+        if new_relx < target_relx:
+            step = 0.005
+        elif new_relx > target_relx:
+            step = -0.005
+        else:
+            return  # If new_relx == target_relx, no animation is needed
+
+        new_relx += step
+
+        self.table_buttons_frame.place(relx=new_relx, rely=0.2, height=30, relwidth=0.96)
+
+        # Schedule the next frame of the animation
+        if (step > 0 and new_relx < target_relx) or (step < 0 and new_relx > target_relx):
+            self.after(1, self.animate_xframe, frame, target_relx, new_relx)
+
+
+        
+
 
     def create_tables(self):
         query_log = source.create_tables()
@@ -248,8 +289,10 @@ class Application(tk.Tk):
             source.cur.execute(query)
             source.conn.commit()
             print("Tables filled successfuly.")
-            self.text_area.delete("1.0", "end")
-            self.text_area.insert("1.0", "Tables filled successfuly.")
+            msgbox.showinfo('Succès', 'les tables ont été remplies avec succès')
+
+            # self.text_area.delete("1.0", "end")
+            # self.text_area.insert("1.0", "Tables filled successfuly.")
 
         except Exception as e:
             source.conn.rollback()
