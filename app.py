@@ -4,6 +4,7 @@ from tkinter import ttk
 import tkinter.filedialog as filedialog
 import tkinter.messagebox as msgbox
 from numpy import pad, size
+from sympy import series
 import source
 
 
@@ -13,7 +14,7 @@ class Table():
     next_row = 0
     def __init__(self, frame, nbr_col, headings):
         if nbr_col!= len(headings):
-            raise ValueError("Number of columns does not match the number of headings.")
+            raise ValueError("Le nombre de colonnes ne correspond pas au nombre de headers.")
 
         self.table = ttk.Treeview(frame)
 
@@ -31,9 +32,9 @@ class Table():
         for column, heading in zip(columns, headings):
             self.table.heading(column, text=heading, anchor=tk.CENTER)
 
-    def _insert_row(self, num, art_id, qte_actuelle, libelle):    
+    def _insert_row(self, values):    
         # Insert sample data
-        self.table.insert(parent='', index='end', id=Table.next_row, text='', values=(num, art_id, qte_actuelle, libelle))
+        self.table.insert(parent='', index='end', id=Table.next_row, text='', values=values)
         # increment the index for the next insertion
         Table.next_row +=1 
 
@@ -93,11 +94,6 @@ class Application(tk.Tk):
         self.tables_button = tk.Button(self.subframe1, text = "Afficher les donnees importee", command = self.view_tables)
         self.tables_button.place(relx = 0.02, rely=0.15)
 
-        self.label = tk.Label(self.subframe1, text="LOG : ", bg="#01161E", fg='white')
-        self.label.place(relx=0.02, rely=0.3)
-
-        self.text_area = tk.Text(self.subframe1, bg="#124559")
-        self.text_area.place(relx=0.02, rely=0.35, relheight=0.6, relwidth=0.96)
 
         self.status_label1 = tk.Label(self.subframe1, text='Hors ligne', fg='red', bg='#01161E' )
         self.status_label1.place(relx=0.475, rely=0.02)
@@ -142,9 +138,8 @@ class Application(tk.Tk):
         self.connection_button.place(relx=0.455, rely=0.7)
 
 
-        self.text_area = tk.Text(self.subframe1, bg="#124559", fg='white', highlightbackground="#124559", insertbackground='white')
-        self.text_area.place(relx=0.02, rely=0.35, relheight=0.6, relwidth=0.96)
-
+        self.insideFrame1 = tk.Frame(self.subframe1, bg="#124559", borderwidth=1)
+        self.insideFrame1.place(relx=0.02, rely=0.32, relheight=0.64, relwidth=0.96)
 
     def connect(self):
         dbname_val = self.dbname_entry.get()
@@ -185,8 +180,6 @@ class Application(tk.Tk):
         self.status_label2.config(text=status_text, fg=status_label_color)
         self.status_label1.config(text=status_text, fg=status_label_color)
 
-        self.text_area.delete("1.0", "end")
-        self.text_area.insert('1.0', connection_info)
 
 
     def read_data(self):
@@ -200,13 +193,7 @@ class Application(tk.Tk):
             self.__class__.imported_data_game = 1
             msgbox.showinfo('Succès', 'Chargement réussi des données')
 
-            # log = ''
-            # for sheet_name, df in source.data.items():
-            #     log += f"\nNom de tableau : {sheet_name}\n"
-            #     log += str(df)
-            # self.text_area.delete("1.0", "end")
-            # self.text_area.insert('1.0', f'Données importées : \n{log}\n')
-
+    
         else:
             alert = Alert(self.subframe1, "Importation", "Aucun chemin n'est specifiee")
         root.destroy()
@@ -235,9 +222,31 @@ class Application(tk.Tk):
                     tk.Button(self.table_buttons_frame, text=table, command=lambda x=table: view_table(x)).pack(side=tk.LEFT, fill='both', expand=True)
                 self.animate_xframe(self.table_buttons_frame, 0.02)
 
-        def view_table(table_name):
-            self.text_area.delete('1.0', 'end')
-            self.text_area.insert("1.0", source.data[table_name].to_string())
+            def view_table(table_name):
+                df = source.data[table_name]
+
+                for widget in self.insideFrame1.winfo_children():
+                    widget.destroy()
+
+                self.new_frame = tk.Frame(self.insideFrame1, bg="#124559", borderwidth=3, highlightcolor= 'yellow')
+                self.new_frame.place(relx=0.02, rely=0.1, relheight=0.6)
+
+
+
+                table = Table(self.new_frame, len(df.columns), df.columns)
+
+                for index, row in df.iterrows():
+                    tupl = list()
+                    print(f"row index: {index}")
+                    for col in row:
+                        tupl.append(col)
+                    
+                    print(tupl)
+
+                    table._insert_row(tupl)
+                
+                table._pack()
+   
                     
 
 
@@ -275,69 +284,92 @@ class Application(tk.Tk):
 
 
     def create_tables(self):
-        query_log = source.create_tables()
-        self.text_area.delete("1.0", "end")
-        self.text_area.insert("1.0", query_log)
+        """
+        Crée les tables de base de données nécessaires.
 
+        Cette fonction exécute les requêtes SQL nécessaires pour créer les tables de base de données.
+        Une boîte de dialogue s'affichera affichant le journal des requêtes exécutées.
+
+        Returns:
+            None
+        """
+        query_log = source.create_tables()
+        msgbox.showinfo('Log de requête', query_log)
         
 
 
     def fill_tables(self):
+        """
+        Remplit les tables de base de données avec des données.
+
+        Cette fonction exécute les requêtes SQL nécessaires pour remplir les tables de base de données avec des données.
+        Si les tables sont remplies avec succès, un message de succès s'affichera. Sinon, un message d'erreur s'affichera.
+
+        Returns:
+            None
+        """
         query = source.fill_artice_table() + ';' + source.fill_achat_table() + ';' +  source.fill_vent_table()
-    
+
         try:
             source.cur.execute(query)
             source.conn.commit()
-            print("Tables filled successfuly.")
-            msgbox.showinfo('Succès', 'les tables ont été remplies avec succès')
-
-            # self.text_area.delete("1.0", "end")
-            # self.text_area.insert("1.0", "Tables filled successfuly.")
+            print("Tables remplies avec succès.")
+            msgbox.showinfo('Succès', 'Les tables ont été remplies avec succès')
 
         except Exception as e:
             source.conn.rollback()
-            log = 'Error filling the table' + str(e)
-            self.text_area.delete("1.0", "end")
-            self.text_area.insert("1.0", log)
-            print(log)
+            msgbox.showerror('Error', str(e))
 
 
     def generate_bilan(self):
+        """
+        Génère le bilan et l'affiche.
+
+        Cette fonction exécute la requête SQL pour remplir la table du bilan, puis récupère les données de la table.
+        Elle crée ensuite un tableau dans l'interface graphique pour afficher les données du bilan.
+
+        Returns:
+            None
+        """
         try:
             source.cur.execute(source.fill_bilan_table())
             source.conn.commit()
 
-            bilan = source.generate_bilan(source.get_table_data("bilan"))
             bilan = source.get_table_data("bilan")
+            print(bilan)
 
-            self.text_area.delete("1.0", 'end')
-            self.text_area.forget()
+            # Affichage du bilan
+            
+            for widget in self.insideFrame1.winfo_children():
+                widget.destroy()
 
-            # affichage du bilan              
-            self.new_frame = tk.Frame(self.subframe1, bg="#124559")
-            self.new_frame.place(relx=0.02, rely=0.35, relheight=0.6, relwidth=0.96)
+            self.new_frame = tk.Frame(self.insideFrame1, bg="#124559", borderwidth=3, highlightcolor= 'yellow')
+            self.new_frame.place(relx=0.02, rely=0.1, relheight=0.6)
             
-            table = Table(self.new_frame, 4 ,['art_id', 'num', 'qte_actuelle', 'libelle'] )
+            table = Table(self.new_frame, 4, ['art_id', 'num', 'qte_actuelle', 'libelle'])
             
-            for i in range(len(bilan)-1):
-                table._insert_row(bilan[i][0], bilan[i][1], bilan[i][2], bilan[i][3])
+            for i in range(len(bilan)):
+                table._insert_row((bilan[i][0], bilan[i][1], bilan[i][2], bilan[i][3]))
             table._pack()
-
 
         except Exception as e:
             source.conn.rollback()
-            log = f'Error when generating the balance sheet, Error : \n{str(e)}'
-            print(log)
-            self.text_area.delete("1.0", 'end')
-            self.text_area.insert("1.0", log)
+            msgbox.showerror('Erreur', f'Erreur lors de la génération du bilan, Erreur : \n{str(e)}')
+            print(f'Erreur lors de la génération du bilan, Erreur : \n{str(e)}')
+          
     
-
     def drop_table(self):
-        query_log = source.drop_tables()
-        print(query_log)
-        self.text_area.delete("1.0", "end")
-        self.text_area.insert("1.0", query_log)
+        """
+        Supprime les tables de base de données.
 
+        Cette fonction exécute la requête SQL pour supprimer les tables de base de données.
+        Un message d'information s'affichera avec le journal des requêtes exécutées.
+
+        Returns:
+            None
+        """
+        log = source.drop_tables()
+        msgbox.showinfo("Journal", log)
 
 
 
